@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+settings.gradle.kts
+lint.xml
+owasp-suppressions.xml

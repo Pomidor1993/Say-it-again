@@ -4,4 +4,9 @@
     <style name="Theme.SayItAgain" parent="Theme.AppCompat.DayNight">
 
     </style>
+
+    <style name="Theme.SayItAgain.Launch" parent="Theme.AppCompat.DayNight">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>

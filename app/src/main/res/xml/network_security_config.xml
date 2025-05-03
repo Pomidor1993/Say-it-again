@@ -1,5 +1,0 @@
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">sayitagain.com</domain>
-    </domain-config>
-</network-security-config>

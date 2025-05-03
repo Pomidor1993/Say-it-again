@@ -1,12 +1,15 @@
 <resources>
 
-    <style name="Theme.SayItAgain" parent="Theme.AppCompat.DayNight">    </style>
-
-    <style name="SplashTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:windowBackground">@drawable/sayitagainbackground</item>
-        <item name="android:windowTranslucentNavigation">true</item>
-        <item name="android:windowDisablePreview">true</item>
+    <style name="Theme.SayItAgain.Launch" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
+    <style name="Theme.SayItAgain" parent="Theme.AppCompat.DayNight.NoActionBar">
+    </style>
 
+    <style name="Theme.SayItAgain.PrivacyPolicy" parent="Theme.SayItAgain">
+        <!-- wyłącza domyślny ActionBar -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 </resources>

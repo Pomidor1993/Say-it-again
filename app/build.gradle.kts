@@ -1,29 +1,34 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
-    id("com.github.ben-manes.versions") version "0.52.0"
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.github.ben-manes.versions")
     id("org.owasp.dependencycheck")
+    id("com.google.firebase.crashlytics")
 }
-dependencyCheck {
-    nvd {
-        apiKey = "0d066371-de43-4aa0-940f-997ef0d665b4"
-    }
-    analyzers {
-        assemblyEnabled = false
-    }
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
-
 android {
-
-    namespace = "com.example.sayitagain"
+    namespace = "com.tomato.sayitagain"
     compileSdk = 35
-    buildFeatures {
-        compose = true
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProperties.getProperty("STORE_FILE"))
+            storePassword = localProperties.getProperty("STORE_PASSWORD")
+            keyAlias = localProperties.getProperty("KEY_ALIAS")
+            keyPassword = localProperties.getProperty("KEY_PASSWORD")
+
+        }
     }
+
+
     defaultConfig {
-        applicationId = "com.example.sayitagain"
+        applicationId = "com.tomato.sayitagain"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -31,30 +36,44 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
-
         testOptions {
             unitTests.isReturnDefaultValues = true
             animationsDisabled = true
         }
+        buildConfigField(
+            "String",
+            "CRASH_REPORTING_API_KEY",
+            "\"${project.findProperty("GOOGLE_CRASH_REPORTING_API_KEY")}\""
+        )
     }
 
     buildTypes {
+        debug {
+            versionNameSuffix = "-debug"
+            isDebuggable = true
+            buildConfigField("boolean", "ENABLE_LOGS", "true")
+
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
+            buildConfigField("boolean", "ENABLE_LOGS", "false")
+
         }
     }
 
     configurations.all {
         resolutionStrategy {
-            force("org.apache.commons:commons-compress:1.27.1")
-            force("io.netty:netty-buffer:4.2.0.Final")
-            force("io.netty:netty-codec-http:4.2.0.Final")
-            force("io.netty:netty-codec-socks:4.2.0.Final")
-            force("io.netty:netty-handler-proxy:4.2.0.Final")
+            force("org.apache.commons:commons-compress:_")
+            force("io.netty:netty-buffer:_")
+            force("io.netty:netty-codec-http:_")
+            force("io.netty:netty-codec-socks:_")
+            force("io.netty:netty-handler-proxy:_")
         }
     }
 
@@ -87,58 +106,85 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
-        animationsDisabled = true // Dodano tę linię
+        animationsDisabled = true
     }
 }
 
+
 dependencies {
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.ui)
-    implementation(libs.androidx.media3.datasource)
-    implementation(libs.androidx.media3.database)
-    implementation(libs.pl.droidsonroids.gif)
-    implementation(libs.google.gson)
+    // Media3
+    implementation(AndroidX.media3.exoPlayer)
+    implementation(AndroidX.media3.ui)
+    implementation(AndroidX.media3.dataSource)
+    implementation(AndroidX.media3.database)
+
+    //SplashScreen
+    implementation("androidx.core:core-splashscreen:_")
+
+    // GIF
+    implementation("pl.droidsonroids.gif:android-gif-drawable:_")
+
+    // JSON
+    implementation("com.google.code.gson:gson:_")
 
     // Firebase
-    implementation(platform(libs.firebase.bom.v3400))
-    implementation(libs.google.firebase.storage.ktx)
+    implementation(platform(Firebase.bom))
+    implementation(Firebase.cloudStorageKtx)
+    implementation("com.google.firebase:firebase-appcheck-playintegrity:_")
+    implementation ("com.google.firebase:firebase-appcheck:_")
+    implementation(Firebase.cloudStorageKtx)
+    implementation("com.google.firebase:firebase-appcheck-ktx:_")
+    implementation("com.google.firebase:firebase-crashlytics")
+
 
     // Compose
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose.v190)
-    implementation(libs.material3)
-    implementation(libs.androidx.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(platform(AndroidX.compose.bom))
+    implementation(AndroidX.activity.compose)
+    implementation(AndroidX.compose.material3)
+    implementation(AndroidX.compose.material.icons.extended)
+    implementation(AndroidX.core.ktx)
+    androidTestImplementation(platform(AndroidX.compose.bom))
+    implementation(AndroidX.lifecycle.viewModelCompose)
+
 
     // CameraX
-    implementation(libs.androidx.camera.core.v140alpha04)
-    implementation(libs.androidx.camera.camera2.v140alpha04)
-    implementation(libs.androidx.camera.lifecycle.v140alpha04)
-    implementation(libs.androidx.camera.view.v140alpha04)
+    implementation(AndroidX.camera.core)
+    implementation(AndroidX.camera.camera2)
+    implementation(AndroidX.camera.lifecycle)
+    implementation(AndroidX.camera.view)
 
     // ML Kit
-    implementation(libs.play.services.mlkit.barcode.scanning.v1830)
+    implementation(Google.android.playServices.mlKit.vision.barcodeScanning)
 
     // Lottie
-    implementation(libs.lottie.compose)
+    implementation("com.airbnb.android:lottie-compose:_")
 
+    // Test
+    testImplementation(Testing.junit4)
+    testImplementation(Testing.mockito.core)
+    testImplementation(KotlinX.coroutines.test)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.mockito.core)
-    testImplementation(libs.kotlinx.coroutines.test)
+    // Android Test
+    androidTestImplementation(AndroidX.test.ext.junit)
+    androidTestImplementation(AndroidX.test.espresso.core)
+    androidTestImplementation(AndroidX.compose.ui.testJunit4)
+    debugImplementation(AndroidX.compose.ui.tooling)
+    debugImplementation(AndroidX.compose.ui.testManifest)
 
-    // Dependencies for Android instrumentation tests (UI tests)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.espresso.core)
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
-
-    //gRPC i inne zależności związane z protokołem gRPC
-    implementation("io.grpc:grpc-netty:1.71.0"){
-        exclude(group = "io.netty") }
-    implementation("io.grpc:grpc-protobuf:1.71.0")
-    implementation("io.grpc:grpc-stub:1.71.0")
-    implementation("com.google.protobuf:protobuf-java:4.30.2")
+    // gRPC
+    implementation("io.grpc:grpc-netty:_") {
+        exclude(group = "io.netty")
+    }
+    implementation("io.grpc:grpc-protobuf:_")
+    implementation("io.grpc:grpc-stub:_")
+    implementation("com.google.protobuf:protobuf-java:_")
+}
+dependencyCheck {
+    nvd {
+        apiKey = localProperties.getProperty("OWASP_API_KEY", "")
+    }
+    analyzers {
+        assemblyEnabled = false
+    }
+    suppressionFiles = listOf("owasp-suppressions.xml")
 }

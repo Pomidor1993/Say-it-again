@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">SayItAgain</string>
-
+    <string name="camera_permission_rationale">Kamera jest używana wyłącznie do skanowania kodów QR w czasie rzeczywistym. Nie zapisujemy żadnych obrazów ani nagrań.</string>
+    <string name="polityka_prywatno_ci">Polityka Prywatności</string>
 </resources>

@@ -1,23 +1,27 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    id("com.google.gms.google-services") version "4.4.2" apply false
-
-
+    id("com.android.application") version "_" apply false
+    id("org.jetbrains.kotlin.android") version "_" apply false
+    id("com.google.gms.google-services") version "_" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "_" apply false
+    id("com.github.ben-manes.versions") version "_"
+    id("org.owasp.dependencycheck") version "_"
 }
+
 buildscript {
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath(libs.gradle)
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20")
-        classpath(libs.google.services)
-        classpath("org.owasp:dependency-check-gradle:12.1.0") {
+        classpath(Android.tools.build.gradlePlugin)           // AGP
+        classpath(Kotlin.gradlePlugin) // Kotlin
+        classpath(Google.playServicesGradlePlugin)            // Google Services
+        classpath("org.owasp:dependency-check-gradle:_") {       // OWASP
             exclude(group = "org.apache.commons", module = "commons-compress")
         }
-        classpath("org.apache.commons:commons-compress:1.27.1")
+        classpath("org.apache.commons:commons-compress:_")
+        classpath("com.google.firebase:firebase-crashlytics-gradle:_")
+
     }
 }
