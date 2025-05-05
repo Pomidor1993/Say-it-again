@@ -16,3 +16,4 @@ local.properties
 settings.gradle.kts
 lint.xml
 owasp-suppressions.xml
+/app/google-services.json

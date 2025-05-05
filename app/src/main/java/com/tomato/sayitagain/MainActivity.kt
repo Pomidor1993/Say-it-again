@@ -181,9 +181,8 @@ fun MainScreen(
                 contentDescription = "Logo aplikacji",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.7f)
                     .padding(vertical = 20.dp)
-                    .height(100.dp)
             )
             Image(
                 painter = painterResource(id = R.drawable.sayitagainphysical1),
