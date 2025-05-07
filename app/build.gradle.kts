@@ -31,7 +31,7 @@ android {
         applicationId = "com.tomato.sayitagain"
         minSdk = 30
         targetSdk = 36
-        versionCode = 2
+        versionCode = 1
         versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -132,9 +132,13 @@ dependencies {
     implementation(Firebase.cloudStorageKtx)
     implementation("com.google.firebase:firebase-appcheck-playintegrity:_")
     implementation ("com.google.firebase:firebase-appcheck:_")
-    implementation(Firebase.cloudStorageKtx)
+    implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-appcheck-ktx:_")
     implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-crashlytics-ktx:_")
+    debugImplementation("com.google.firebase:firebase-appcheck-debug")
+    implementation("com.google.firebase:firebase-storage-ktx:_")
+
 
 
     // Compose

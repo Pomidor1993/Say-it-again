@@ -1,15 +1,9 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-plugins {
-    id("com.android.application") version "_" apply false
-    id("org.jetbrains.kotlin.android") version "_" apply false
-    id("com.google.gms.google-services") version "_" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "_" apply false
-    id("com.github.ben-manes.versions") version "_"
-    id("org.owasp.dependencycheck") version "_"
-}
+
 
 buildscript {
     repositories {
+        gradlePluginPortal()
         google()
         mavenCentral()
     }

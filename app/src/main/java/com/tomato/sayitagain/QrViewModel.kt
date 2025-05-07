@@ -1,6 +1,7 @@
 package com.tomato.sayitagain
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -17,9 +18,9 @@ import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLDecoder
 import java.security.NoSuchAlgorithmException
 import java.security.SecureRandom
-
 
 @UnstableApi
 class QrViewModel(application: Application) : AndroidViewModel(application) {
@@ -62,7 +63,6 @@ class QrViewModel(application: Application) : AndroidViewModel(application) {
                     else -> throw IllegalStateException("JSON nie jest ani tablicą, ani obiektem")
                 }
 
-                // iteruj po każdym elemencie i konstruuj QrCodeData „ręcznie”
                 array.forEachIndexed { idx, je ->
                     try {
                         val obj = je.asJsonObject
@@ -81,101 +81,75 @@ class QrViewModel(application: Application) : AndroidViewModel(application) {
 
                     } catch (e: Exception) {
                         Log.w("QrViewModel", "Błąd parsowania elementu #$idx", e)
-                        // nie przerywamy pętli, po prostu pomijamy ten element
                     }
                 }
 
                 _allQrCodes.clear()
                 _allQrCodes.addAll(parsed)
                 _availableGroups.value = _allQrCodes.map { it.group }.toSet()
-
                 Log.d("QrViewModel", "Załadowałem ${parsed.size} kodów QR z ${array.size()} elementów.")
-
-                _availableGroups.value = _allQrCodes.map { it.group }.toSet()
-                // AFTER loading data:
                 isLoaded.value = true
-            }
-            catch (e: Exception) {
-                // zdarzy się tylko, jeśli JSON jest kompletnie nie w formacie tablicy lub obiektu
+            } catch (e: Exception) {
                 Log.e("QrViewModel", "Błąd parsowania JSON: ${e.javaClass.simpleName}")
                 isLoaded.value = true
             }
         }
     }
 
-
-
+    /**
+     * Zwraca QrCodeData dla zeskanowanego ciągu (sayitagain://...)
+     * oraz dokonuje dekodowania pola code (%2F → /) w zwróconym obiekcie.
+     */
     fun getQrCodeData(rawValue: String): QrCodeData? {
-        // 1. Najpierw sprawdź protokół
+        // 1. Sprawdź prefiks
         if (!rawValue.startsWith("sayitagain://")) {
             Log.w("QR_SECURITY", "Nieprawidłowy protokół: $rawValue")
             return null
         }
 
-        // 2. Przetwórz ścieżkę
-        val path = rawValue
-            .removePrefix("sayitagain://")
-            .replace("/", "%2F")
+        // 2. Wyodrębnij i dekoduj ścieżkę po schemacie
+        val rawPath = rawValue.removePrefix("sayitagain://")
 
-        // 3. Sprawdź iniekcję ścieżki
-        if (path.contains("..")) {
-            Log.e("QR_SECURITY", "Wykryto iniekcję ścieżki: $path")
+        if (rawPath.contains("..")) {
+            Log.e("QR_SECURITY", "Wykryto iniekcję ścieżki: $rawPath")
             Firebase.crashlytics.recordException(SecurityException("Path traversal attempt"))
             return null
         }
 
-        // 4. Sprawdź regex
-        if (!path.matches(Regex("[a-zA-Z0-9%\\-_.~]+"))) {
-            Log.e("QR_SECURITY", "Niedozwolone znaki w ścieżce: $path")
+        if (!rawPath.matches(Regex("[a-zA-Z0-9/\\-_.~]+"))) {
+            Log.e("QR_SECURITY", "Niedozwolone znaki w ścieżce: $rawPath")
             return null
         }
 
-        // 5. Znajdź QR w bazie
-        return _allQrCodes.firstOrNull { qr ->
-            qr.code.equals(path, ignoreCase = true)
-        }
+        val match = _allQrCodes.firstOrNull { qr ->
+            val decoded = URLDecoder.decode(qr.code, "UTF-8")
+            decoded.equals(rawPath, ignoreCase = true)
+        } ?: return null
+
+        return match.copy(code = rawPath)
     }
-
-
 
     override fun onCleared() {
         super.onCleared()
         mediaPlayerHelper.release()
     }
 
-    companion object {
-        val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-                val application = extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                return QrViewModel(application) as T
-            }
-        }
-    }
-
-
     fun getRandomUnusedQrCode(): QrCodeData? {
-        val eligibleQrCodes = _allQrCodes
-            .filter {
-                _selectedGroups.value.contains(it.group) &&
-                        _selectedLanguages.value.contains(it.language)
-            }
+        val eligible = _allQrCodes
+            .filter { _selectedGroups.value.contains(it.group) && _selectedLanguages.value.contains(it.language) }
             .filterNot { _usedQrCodes.contains(it) }
 
-        if (eligibleQrCodes.isEmpty()) return null
+        if (eligible.isEmpty()) return null
 
         return try {
-            // Użyj najsilniejszego dostępnego algorytmu
             val secureRandom = SecureRandom.getInstanceStrong()
-            // Dodaj losowe ziarno (np. z systemowego źródła entropii)
             secureRandom.nextBytes(ByteArray(16))
-
-            val randomIndex = secureRandom.nextInt(eligibleQrCodes.size)
-            val selectedQr = eligibleQrCodes[randomIndex]
-            _usedQrCodes.add(selectedQr)
-            selectedQr
+            val index = secureRandom.nextInt(eligible.size)
+            val selected = eligible[index]
+            _usedQrCodes.add(selected)
+            val decodedCode = URLDecoder.decode(selected.code, "UTF-8")
+            selected.copy(code = decodedCode)
         } catch (e: NoSuchAlgorithmException) {
-            // Fallback na domyślny SecureRandom
             Log.e("QR_SECURITY", "Błąd SecureRandom: ${e.message}")
             null
         }
@@ -191,5 +165,15 @@ class QrViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSelectedLanguages(languages: Set<String>) {
         _selectedLanguages.value = languages
+    }
+
+    companion object {
+        val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                val application = extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
+                return QrViewModel(application) as T
+            }
+        }
     }
 }

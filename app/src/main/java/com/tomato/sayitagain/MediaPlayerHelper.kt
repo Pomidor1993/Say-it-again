@@ -100,7 +100,8 @@ class MediaPlayerHelper(context: Context) : Player.Listener {
      * a samo odtwarzanie zawsze przez cacheDataSourceFactory.
      */
     fun playFromFirebaseFile(path: String) {
-        // Ścieżka np. "audio/movies/pl/krollew.mp3"
+        Log.d("MediaPlayer", "Próba odczytu ścieżki: $path")
+
         var isTimeout = false
         // timeout na pobranie URL
         val timeoutRunnable = Runnable {
@@ -115,11 +116,14 @@ class MediaPlayerHelper(context: Context) : Player.Listener {
         storage.reference.child(path)
             .downloadUrl
             .addOnSuccessListener { uri ->
+                Log.d("MediaPlayer", "Pobrano URL: $uri")
+                prepareAndPlay(uri, path)
                 if (isTimeout) return@addOnSuccessListener
                 handler.removeCallbacks(timeoutRunnable)
                 prepareAndPlay(uri, path)
             }
             .addOnFailureListener { e ->
+                Log.e("MediaPlayer", "Błąd pobierania URL", e)
                 handler.removeCallbacks(timeoutRunnable)
                 handler.post {
                     Log.e("MediaPlayerHelper", "Download failed", e)
@@ -133,6 +137,7 @@ class MediaPlayerHelper(context: Context) : Player.Listener {
     }
 
     private fun prepareAndPlay(uri: Uri, cacheKey: String) {
+        Log.d("MediaPlayer", "Przygotowanie odtwarzania: $uri")
         handler.post {
             try {
                 if (exoPlayer.playbackState == Player.STATE_IDLE) {
