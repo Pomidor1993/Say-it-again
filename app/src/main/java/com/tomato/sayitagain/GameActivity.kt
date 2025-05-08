@@ -6,13 +6,10 @@ import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,7 +76,6 @@ class GameActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SayItAgainTheme {
-                // Inicjalizacja ViewModel w kontekście Composable
                 val vm: QrViewModel = viewModel(factory = QrViewModel.factory)
                 viewModel = vm
                 GameContent(vm)
@@ -90,7 +86,6 @@ class GameActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (isFinishing) {
-            // Bezpośredni dostęp do już zainicjalizowanego ViewModel
             viewModel.mediaPlayerHelper.stop()
         }
     }
@@ -167,10 +162,8 @@ fun GameScreen(
                         isPlaying = false
                     }
                     Player.STATE_BUFFERING -> {
-                        // Możesz dodać obsługę buforowania jeśli potrzebne
                     }
                     Player.STATE_IDLE -> {
-                        // Możesz dodać obsługę stanu bezczynnego
                     }
                 }
             }
@@ -193,7 +186,6 @@ fun GameScreen(
                 mediaPlayerHelper.playFromFirebaseFile(quote.code)
                 isQuoteLoaded = true
             } catch (e: Exception) {
-                // Dodajemy obsługę błędów
                 Log.e("GameScreen", "Błąd ładowania cytatu", e)
                 Toast.makeText(context, "Błąd ładowania nagrania", Toast.LENGTH_SHORT).show()
                 currentQuote = null
@@ -201,15 +193,12 @@ fun GameScreen(
         }
     }
 
-    fun stopPlayback() {
-        if (mediaPlayerHelper.exoPlayer.isPlaying) {
-            mediaPlayerHelper.pause()
-        }
-        playbackEnded = true
-        isManuallyPaused = false
-    }
-    BackHandler(enabled = true) {
-        showExitDialog = true
+    fun resetForNewRound() {
+        mediaPlayerHelper.stop()
+        currentQuote = null
+        playbackEnded = false
+        isQuoteLoaded = false
+        viewModel.resetUsedQrCodes()
     }
 
     if (showExitDialog) {
@@ -301,10 +290,8 @@ fun GameScreen(
                     correctTitlePL = currentQuote?.titlePL,
                     comment = currentComment,
                     onNext = {
-                        stopPlayback()
+                        resetForNewRound()
                         showAnswerResult = false
-                        currentQuote = null
-                        playbackEnded = false
 
                         val nextPlayerIndex = (currentPlayerIndex + 1) % playerNames.size
 
@@ -351,34 +338,60 @@ fun GameScreen(
                     }
                 )
 
-                playbackEnded -> Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 15.dp)
+                playbackEnded -> Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ReplayButton(
-                        onReplay = {currentQuote?.let { quote ->
-                            mediaPlayerHelper.seekTo(0)
-                            mediaPlayerHelper.playFromFirebaseFile(quote.code)
-                            playbackEnded = false
-                            isPlaying = true }},
+                    ControllableGif(
                         modifier = Modifier
-                            .scale(0.75f)
-                            .padding(horizontal = 8.dp)
-                            .aspectRatio(0.75f)
+                            .fillMaxWidth(0.8f)
+                            .aspectRatio(1f),
+                        gifResId = R.drawable.soundwave,
+                        isPlaying = false
                     )
 
-                    Image(
-                        painter = painterResource(id = R.drawable.responsebutton),
-                        contentDescription = "Response",
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .weight(0.1f)
-                            .padding(horizontal = 8.dp)
-                            .aspectRatio(0.1f)
-                            .clickable { showAnswer = true }
-                    )
+                            .fillMaxWidth()
+                    ) {
+                        IconButton(
+                            onClick = {
+                                currentQuote?.let { quote ->
+                                    mediaPlayerHelper.seekTo(0)
+                                    mediaPlayerHelper.playFromFirebaseFile(quote.code)
+                                    playbackEnded = false
+                                    isPlaying = true
+                                }
+                            },
+                            modifier = Modifier
+                                .size(80.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.replay_24px),
+                                contentDescription = "Odtwórz ponownie",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        IconButton(
+                            onClick = { showAnswer = true },
+                            modifier = Modifier
+                                .size(80.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.responsebutton),
+                                contentDescription = "Odpowiedz",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                 }
 
                 currentQuote != null -> {
@@ -714,27 +727,5 @@ fun PlayerControls(
                     .scale(1f)
             )
         }
-    }
-}
-
-
-
-@Composable
-private fun ReplayButton(
-    onReplay: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    IconButton(
-        onClick = { onReplay() },
-        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White),
-        modifier = modifier
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.replay_24px),
-            contentDescription = "Odtwórz ponownie",
-            modifier = modifier
-                .fillMaxSize()
-                .scale(1f)
-        )
     }
 }

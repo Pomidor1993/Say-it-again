@@ -69,8 +69,6 @@ class QrScannerActivity : ComponentActivity() {
     }
 }
 
-
-
 @OptIn(ExperimentalGetImage::class, UnstableApi::class)
 @Composable
 fun QrScannerScreen(onBackClick: () -> Unit) {
@@ -85,7 +83,6 @@ fun QrScannerScreen(onBackClick: () -> Unit) {
     var scanError by remember { mutableStateOf<String?>(null) }
     var currentQrData by remember { mutableStateOf<QrCodeData?>(null) }
     var playbackEnded by remember { mutableStateOf(false) }
-
 
     val cameraPermissionGranted = remember {
         mutableStateOf(
@@ -125,10 +122,9 @@ fun QrScannerScreen(onBackClick: () -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (!isLoaded) {
-            LoadingOverlay()    // nowy composable, patrz niżej
+            LoadingOverlay()
             return@Box
         }
-        // … reszta Twojego Boxa …
     }
 
     Box(
@@ -325,7 +321,6 @@ fun QrContentScreen(
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current
     val screenWidth: Dp = with(density) { windowInfo.containerSize.width.toDp() }
-    val buttonSize = screenWidth * 0.3f
     val spacing = screenWidth * 0.1f
     var isPlaying by remember { mutableStateOf(false) }
     var isManuallyPaused by remember { mutableStateOf(false) }
@@ -337,17 +332,22 @@ fun QrContentScreen(
                     Player.STATE_ENDED -> {
                         onPlaybackEndedChange(true)
                         isPlaying = false
+                        isManuallyPaused = false
                     }
-
                     Player.STATE_READY -> {
                         isPlaying = mediaPlayerHelper.exoPlayer.isPlaying
                         if (isPlaying) onPlaybackEndedChange(false)
                     }
-
                     Player.STATE_BUFFERING -> isPlaying = false
-                    Player.STATE_IDLE -> isPlaying = false
-
+                    Player.STATE_IDLE -> {
+                        isPlaying = false
+                        isManuallyPaused = false
+                    }
                 }
+            }
+
+            override fun onIsPlayingChanged(isNowPlaying: Boolean) {
+                isPlaying = isNowPlaying && !isManuallyPaused
             }
         }
 
@@ -396,9 +396,15 @@ fun QrContentScreen(
                     onClick = {
                         if (mediaPlayerHelper.exoPlayer.isPlaying) {
                             mediaPlayerHelper.pause()
+                            isManuallyPaused = true
                         } else {
+                            if (mediaPlayerHelper.exoPlayer.currentPosition >= mediaPlayerHelper.exoPlayer.duration) {
+                                mediaPlayerHelper.seekTo(0)
+                            }
                             mediaPlayerHelper.resume()
+                            isManuallyPaused = false
                         }
+                        isPlaying = mediaPlayerHelper.exoPlayer.isPlaying
                     }
                 )
             }

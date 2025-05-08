@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
@@ -135,6 +136,9 @@ class QrViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getRandomUnusedQrCode(): QrCodeData? {
+        if (mediaPlayerHelper.exoPlayer.playbackState != Player.STATE_IDLE) {
+            mediaPlayerHelper.stop()
+        }
         val eligible = _allQrCodes
             .filter { _selectedGroups.value.contains(it.group) && _selectedLanguages.value.contains(it.language) }
             .filterNot { _usedQrCodes.contains(it) }
@@ -157,6 +161,7 @@ class QrViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetUsedQrCodes() {
         _usedQrCodes.clear()
+        mediaPlayerHelper.stop()
     }
 
     fun setSelectedGroups(groups: Set<String>) {
